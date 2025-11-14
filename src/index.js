@@ -6,6 +6,11 @@ const rfs = require('rotating-file-stream');
 const path = require('path');
 const fs = require('fs');
 
+// Swagger
+const swaggerUi = require('swagger-ui-express');
+const swaggerJsdoc = require('swagger-jsdoc');
+
+// Routes
 const convertRoutes = require('./routes/convert');
 const imageRoutes = require('./routes/images');
 const contactRoutes = require('./routes/contact');
@@ -34,7 +39,12 @@ app.use(express.urlencoded({ extended: true, limit: "200mb" }));
 -------------------------------- */
 const logDir = path.join(__dirname, '..', 'logs');
 if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
-const accessLogStream = rfs.createStream('access.log', { interval: '1d', path: logDir });
+
+const accessLogStream = rfs.createStream('access.log', {
+  interval: '1d',
+  path: logDir,
+});
+
 app.use(morgan('combined', { stream: accessLogStream }));
 
 /* -------------------------------
@@ -43,6 +53,26 @@ app.use(morgan('combined', { stream: accessLogStream }));
 app.get("/api/ping", (req, res) => {
   res.json({ ok: true, time: Date.now() });
 });
+
+/* -------------------------------
+   Swagger Documentation
+-------------------------------- */
+const swaggerOptions = {
+  definition: {
+    openapi: "3.0.0",
+    info: {
+      title: "NeunovaPDF Backend API",
+      version: "1.0.0",
+      description: "Documentation for all PDF & Image processing tools",
+    },
+  },
+  apis: ["./routes/*.js"], // <-- swagger annotations inside routes
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// Swagger UI Path = https://neunovapdf-backend-v2.onrender.com/api-docs
 
 /* -------------------------------
    API Routes
@@ -60,11 +90,11 @@ app.use(
   express.static(path.join(__dirname, '..', '..', 'docs', 'policies'))
 );
 
-app.use('/sitemap.xml', (req,res)=> {
+app.use('/sitemap.xml', (req, res) => {
   res.sendFile(path.join(__dirname, '..', '..', 'frontend', 'public', 'sitemap.xml'));
 });
 
-app.use('/robots.txt', (req,res)=> {
+app.use('/robots.txt', (req, res) => {
   res.sendFile(path.join(__dirname, '..', '..', 'frontend', 'public', 'robots.txt'));
 });
 
